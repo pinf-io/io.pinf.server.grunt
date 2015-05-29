@@ -4,9 +4,53 @@ const EXPRESS = require("express");
 const SEND = require("send");
 const HTTP = require("http");
 const WAITFOR = require("waitfor");
+const SPAWN = require("child_process").spawn;
 
 
 require('org.pinf.genesis.lib').forModule(require, module, function (API, exports) {
+
+
+	function spawnFunctionSourceInNodeProcess (sourceFunction, args, callback) {
+		var source = [
+			"((",
+			sourceFunction.toString(),
+			")(" + JSON.stringify(args, null, 4) + "));"
+		].join("");
+		API.console.debug("Run source with args", args, "in node process:", source);
+		var proc = SPAWN(process.argv[0], [
+	        "-e", source
+	    ], {
+	    	cwd: __dirname,
+	    	env: process.env
+	    });
+	    proc.on("error", function(err) {
+	    	return callback(err);
+	    });
+	    proc.stdout.on('data', function (data) {
+			if (API.VERBOSE) {
+				process.stdout.write(data);
+			}
+	    });
+	    proc.stderr.on('data', function (data) {
+			if (API.VERBOSE) {
+				process.stderr.write(data);
+			}
+	    	if (/EMFILE/.test(data)) {
+	    		console.error("Too many files open! run 'ulimit -n 10480' or see: https://github.com/gruntjs/grunt-contrib-watch#how-do-i-fix-the-error-emfile-too-many-opened-files");
+	    		proc.close();
+	    	}
+	    });
+	    proc.on('close', function (code) {
+	    	if (code) {
+	    		var err = new Error("Node running code from function source exited with code: " + code);
+	    		err.code = code;
+	    		return callback(err);
+	    	}
+	    	API.console.debug("Source run with args ended.");
+	    });
+	    return callback(null, proc);
+	}
+
 
 	function setupGruntSets (app, gruntSetName, locator, callback) {
 
@@ -19,7 +63,7 @@ require('org.pinf.genesis.lib').forModule(require, module, function (API, export
 		function loadPackageConfig (callback) {
 			return API.PACKAGE.fromFile(PATH.join(location, "package.json"), function (err, descriptor) {
 				if (err) return callback(err);
-				return callback(null, descriptor.configForLocator(API.LOCATOR.fromConfigId("io.pinf.server.webpack/0")));
+				return callback(null, descriptor.configForLocator(API.LOCATOR.fromConfigId("io.pinf.server.grunt/0")));
 			});
 		}
 
@@ -28,9 +72,89 @@ require('org.pinf.genesis.lib').forModule(require, module, function (API, export
 
 			function configureGrunt (subName, config) {
 
+				Object.keys(config.ecosystems).forEach(function (ecosystem) {
+					if (ecosystem === "bower") {
 
-console.log("CONFIGURE GRUNT", subName, config);
+						var ecosystemConfig = config.ecosystems[ecosystem];
 
+						API.console.verbose("Trigger grunt for ecosystem '" + ecosystem + "' with config:", ecosystemConfig);
+
+						return spawnFunctionSourceInNodeProcess(function (args) {
+
+							const PATH = require("path");
+
+							var ecosystemConfig = args.ecosystemConfig;
+							var location = args.location;
+
+							var GRUNT = require("grunt");
+
+							GRUNT.file.setBase(location);
+
+							GRUNT.initConfig({
+				                bower_concat: {
+				                    all: {
+				                        dest: ecosystemConfig.targetBasePath + '.js',
+									    cssDest: ecosystemConfig.targetBasePath + '.css',
+									    exclude: [],
+									    dependencies: {},
+									    bowerOptions: {
+									      relative: false
+									    }
+				                    }
+				                },
+								watch: {
+									scripts: {
+										files: [
+											ecosystemConfig.componentsPath + "/**/*.js",
+											ecosystemConfig.componentsPath + "/**/*.css"
+										],
+										tasks: [
+											'bower_concat'
+										],
+										options: {
+											spawn: false
+										}
+									}
+								}				                
+				            });
+
+				            GRUNT.loadTasks(PATH.dirname(require.resolve("grunt-contrib-watch/package.json")) + "/tasks");
+				            GRUNT.loadTasks(PATH.dirname(require.resolve("grunt-bower-concat/package.json")) + "/tasks");
+
+				            GRUNT.registerInitTask('default', function() {
+				                GRUNT.task.run([
+				                	"bower_concat",
+				                	"watch"
+				                ]);
+				            });
+
+							GRUNT.event.on('watch', function(action, filepath, target) {
+								console.log("FILE CAHNGED:", (target + ': ' + filepath + ' has ' + action));
+							});
+
+				            return GRUNT.tasks(['default'], {
+				                debug: true,
+				                verbose: true
+				            }, function(err) {
+				            	if (err) {
+				            		console.error("Grunt error:", err.stack);
+				            		process.exit(1);
+				            	}
+				            });
+
+						}, {
+							ecosystemConfig: ecosystemConfig,
+							location: location
+						}, function (err, proc) {
+							if (err) return callback(err);
+
+							API.console.verbose("GRUNT process started!");
+						});
+
+					} else {
+						throw new Error("Ecosystem '" + ecosystem + "' not supported!");
+					}
+				});
 
 			}
 

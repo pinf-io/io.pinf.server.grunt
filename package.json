@@ -4,6 +4,9 @@
   "dependencies": {
     "bash.origin": "0.1.x",
     "express": "^4.12.4",
+    "grunt": "^0.4.5",
+    "grunt-bower-concat": "^0.5.0",
+    "grunt-contrib-watch": "^0.6.1",
     "org.pinf.genesis.lib": "0.1.x",
     "org.pinf.lib": "0.1.x",
     "q": "^1.4.1",
