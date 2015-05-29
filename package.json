@@ -1,0 +1,32 @@
+{
+  "name": "io.pinf.server.grunt",
+  "main": "server.js",
+  "dependencies": {
+    "bash.origin": "0.1.x",
+    "express": "^4.12.4",
+    "org.pinf.genesis.lib": "0.1.x",
+    "org.pinf.lib": "0.1.x",
+    "q": "^1.4.1",
+    "send": "^0.12.3",
+    "waitfor": "^0.1.3"
+  },
+  "config": {
+    "io.pinf.server.grunt/0": {
+      "port": 8082,
+      "bind": "127.0.0.1"
+    },
+    "pio.pinf.io/0": {
+      "runtime": "default-nodejs-server"
+    },
+    "org.pinf.genesis.lib/0": {
+      "api": {
+        "consumes": {
+          "config": "org.pinf.genesis.lib/0/config",
+          "PACKAGE": "org.pinf.lib/lib/package",
+          "LOCATOR": "org.pinf.lib/lib/locator",
+          "Q": "q"
+        }
+      }
+    }
+  }
+}
