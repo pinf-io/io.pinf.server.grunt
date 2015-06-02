@@ -162,19 +162,21 @@ require('org.pinf.genesis.lib').forModule(require, module, function (API, export
 				configureGrunt(name, gruntsConfig.grunts[name]);
 			});
 
-			var staticRoutes = Object.keys(gruntsConfig.static);
-			staticRoutes.sort(function(a, b) {
-				return b.length - a.length; // ASC -> a - b; DESC -> b - a
-			});
-			staticRoutes.forEach(function (route) {
-				app.get(new RegExp("^\\/" + gruntSetName + route.replace(/\/$/, "").replace(/\//g, "\\/") + "(\\/.*)$"), function (req, res, next) {
-					var path = req.params[0];
-					if (path === "/") path = "/index.html";
-					return SEND(req, path, {
-						root: PATH.join(location, gruntsConfig.static[route])
-					}).on("error", next).pipe(res);
+			if (gruntsConfig.static) {
+				var staticRoutes = Object.keys(gruntsConfig.static);
+				staticRoutes.sort(function(a, b) {
+					return b.length - a.length; // ASC -> a - b; DESC -> b - a
 				});
-			});
+				staticRoutes.forEach(function (route) {
+					app.get(new RegExp("^\\/" + gruntSetName + route.replace(/\/$/, "").replace(/\//g, "\\/") + "(\\/.*)$"), function (req, res, next) {
+						var path = req.params[0];
+						if (path === "/") path = "/index.html";
+						return SEND(req, path, {
+							root: PATH.join(location, gruntsConfig.static[route])
+						}).on("error", next).pipe(res);
+					});
+				});
+			}
 
 			return callback(null);
 		});
