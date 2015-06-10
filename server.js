@@ -186,6 +186,30 @@ require('org.pinf.genesis.lib').forModule(require, module, function (API, export
 
 		var app = EXPRESS();
 
+		app.use(function (req, res, next) {
+
+			var origin = null;
+	        if (req.headers.origin) {
+	            origin = req.headers.origin;
+	        } else
+	        if (req.headers.host) {
+	            origin = [
+	                (API.config.port === 443) ? "https" : "http",
+	                "://",
+	                req.headers.host
+	            ].join("");
+	        }
+	        res.setHeader("Access-Control-Allow-Methods", "GET");
+	        res.setHeader("Access-Control-Allow-Credentials", "true");
+	        res.setHeader("Access-Control-Allow-Origin", origin);
+	        res.setHeader("Access-Control-Allow-Headers", "Content-Type, Cookie");
+	        if (req.method === "OPTIONS") {
+	            return res.end();
+	        }
+
+	        return next();
+		});
+
 		var waitfor = WAITFOR.parallel(function (err) {
 
 			HTTP.createServer(app).listen(API.config.port, API.config.bind);
