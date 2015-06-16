@@ -54,6 +54,8 @@ require('org.pinf.genesis.lib').forModule(require, module, function (API, export
 
 	function setupGruntSets (app, gruntSetName, locator, callback) {
 
+		API.console.debug("setupGruntSets", gruntSetName, locator);
+
 		var location = locator.location;
 
 		if (!/^\//.test(location)) {
@@ -71,6 +73,8 @@ require('org.pinf.genesis.lib').forModule(require, module, function (API, export
 			if (err) return callback(err);
 
 			function configureGrunt (subName, config) {
+
+				API.console.debug("configureGrunt", subName, config);
 
 				Object.keys(config.ecosystems).forEach(function (ecosystem) {
 					if (ecosystem === "bower") {
@@ -162,12 +166,16 @@ require('org.pinf.genesis.lib').forModule(require, module, function (API, export
 				configureGrunt(name, gruntsConfig.grunts[name]);
 			});
 
+			API.console.debug("gruntsConfig", gruntsConfig);
+
 			if (gruntsConfig.static) {
 				var staticRoutes = Object.keys(gruntsConfig.static);
+				API.console.verbose("staticRoutes", staticRoutes);
 				staticRoutes.sort(function(a, b) {
 					return b.length - a.length; // ASC -> a - b; DESC -> b - a
 				});
 				staticRoutes.forEach(function (route) {
+					API.console.verbose("Mount route '" + "/^\\/" + gruntSetName + route.replace(/\/$/, "").replace(/\//g, "\\/") + "(\\/.*)$/" + "' to '" + gruntsConfig.static[route] + "'");
 					app.get(new RegExp("^\\/" + gruntSetName + route.replace(/\/$/, "").replace(/\//g, "\\/") + "(\\/.*)$"), function (req, res, next) {
 						var path = req.params[0];
 						if (path === "/") path = "/index.html";
