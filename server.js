@@ -10,7 +10,7 @@ const SPAWN = require("child_process").spawn;
 require('org.pinf.genesis.lib').forModule(require, module, function (API, exports) {
 
 
-	function spawnFunctionSourceInNodeProcess (sourceFunction, args, callback) {
+	function spawnFunctionSourceInNodeProcess (workingDirectory, sourceFunction, args, callback) {
 		var source = [
 			"((",
 			sourceFunction.toString(),
@@ -20,7 +20,7 @@ require('org.pinf.genesis.lib').forModule(require, module, function (API, export
 		var proc = SPAWN(process.argv[0], [
 	        "-e", source
 	    ], {
-	    	cwd: __dirname,
+	    	cwd: workingDirectory,
 	    	env: process.env
 	    });
 	    proc.on("error", function(err) {
@@ -83,18 +83,20 @@ require('org.pinf.genesis.lib').forModule(require, module, function (API, export
 
 						API.console.verbose("Trigger grunt for ecosystem '" + ecosystem + "' with config:", ecosystemConfig);
 
-						return spawnFunctionSourceInNodeProcess(function (args) {
+						return spawnFunctionSourceInNodeProcess(location, function (args) {
 
 							const PATH = require("path");
 
 							var ecosystemConfig = args.ecosystemConfig;
 							var location = args.location;
 
-							var GRUNT = require("grunt");
+							var GRUNT = require(args.api.grunt);
+
+							console.log("location", location);
 
 							GRUNT.file.setBase(location);
 
-							GRUNT.initConfig({
+							var gruntConfig = {
 				                bower_concat: {
 				                    all: {
 				                        dest: ecosystemConfig.targetBasePath + '.js',
@@ -120,10 +122,14 @@ require('org.pinf.genesis.lib').forModule(require, module, function (API, export
 										}
 									}
 								}				                
-				            });
+				            };
 
-				            GRUNT.loadTasks(PATH.dirname(require.resolve("grunt-contrib-watch/package.json")) + "/tasks");
-				            GRUNT.loadTasks(PATH.dirname(require.resolve("grunt-bower-concat/package.json")) + "/tasks");
+				            console.log("gruntConfig", JSON.stringify(gruntConfig, null, 4));
+
+							GRUNT.initConfig(gruntConfig);
+
+				            GRUNT.loadTasks(PATH.dirname(args.api["grunt-contrib-watch"]) + "/tasks");
+				            GRUNT.loadTasks(PATH.dirname(args.api["grunt-bower-concat"]) + "/tasks");
 
 				            GRUNT.registerInitTask('default', function() {
 				                GRUNT.task.run([
@@ -148,7 +154,12 @@ require('org.pinf.genesis.lib').forModule(require, module, function (API, export
 
 						}, {
 							ecosystemConfig: ecosystemConfig,
-							location: location
+							location: location,
+							api: {
+								"grunt-contrib-watch": require.resolve("grunt-contrib-watch/package.json"),
+								"grunt-bower-concat": require.resolve("grunt-bower-concat/package.json"),
+								grunt: require.resolve("grunt")
+							}
 						}, function (err, proc) {
 							if (err) return callback(err);
 
