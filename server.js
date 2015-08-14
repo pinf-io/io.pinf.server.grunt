@@ -86,6 +86,7 @@ require('org.pinf.genesis.lib').forModule(require, module, function (API, export
 						return spawnFunctionSourceInNodeProcess(location, function (args) {
 
 							const PATH = require("path");
+							const DEEPMERGE = require("deepmerge");
 
 							var ecosystemConfig = args.ecosystemConfig;
 							var location = args.location;
@@ -124,6 +125,10 @@ require('org.pinf.genesis.lib').forModule(require, module, function (API, export
 								}				                
 				            };
 
+				            if (args.config) {
+				            	gruntConfig = DEEPMERGE(gruntConfig, args.config);
+				            }
+
 				            console.log("gruntConfig", JSON.stringify(gruntConfig, null, 4));
 
 							GRUNT.initConfig(gruntConfig);
@@ -155,6 +160,7 @@ require('org.pinf.genesis.lib').forModule(require, module, function (API, export
 						}, {
 							ecosystemConfig: ecosystemConfig,
 							location: location,
+							config: locator.config || {},
 							api: {
 								"grunt-contrib-watch": require.resolve("grunt-contrib-watch/package.json"),
 								"grunt-bower-concat": require.resolve("grunt-bower-concat/package.json"),

@@ -3,6 +3,7 @@
   "main": "server.js",
   "dependencies": {
     "bash.origin": "0.1.x",
+    "deepmerge": "^0.2.10",
     "express": "^4.12.4",
     "grunt": "^0.4.5",
     "grunt-bower-concat": "^0.5.0",
@@ -27,7 +28,8 @@
           "config": "org.pinf.genesis.lib/0/config",
           "PACKAGE": "org.pinf.lib/lib/package",
           "LOCATOR": "org.pinf.lib/lib/locator",
-          "Q": "q"
+          "Q": "q",
+          "DEEPMERGE": "deepmerge"
         }
       }
     }
